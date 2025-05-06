@@ -105,8 +105,8 @@ const Horarios = () => {
         >
           <option value="">Seleccionar Ruta</option>
           {rutas.map((ruta) => (
-            <option key={ruta.id} value={ruta.id}>
-              {ruta.codigo}
+            <option key={ruta.id_ruta} value={ruta.id_ruta}>
+              {ruta.nombre}
             </option>
           ))}
         </select>
@@ -169,7 +169,7 @@ const Horarios = () => {
                 className="row-hover border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <td className="p-2">
-                  {rutas.find((r) => r.id === horario.ruta)?.codigo || "N/A"}
+                {rutas.find((r) => r.id_ruta === horario.ruta)?.nombre || "N/A"}
                 </td>
                 <td className="p-2">{horario.hora_salida}</td>
                 <td className="p-2">{horario.dias_semana}</td>

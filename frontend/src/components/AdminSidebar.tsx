@@ -3,6 +3,7 @@ import { Users, Bus, Route, ReceiptText,
   HandHelping, LogOut, Building, Clock, MapPin, 
   Stamp, UserCircle, MapPinPlus, Armchair, PlaneTakeoff,
    ContactRound } from "lucide-react";
+import MobileNavbar from "./MobileNavbar";
 
 const AdminSidebar = () => {
   const modules = [
@@ -28,7 +29,7 @@ const AdminSidebar = () => {
     {
       name: "Gestión Comercial",
       items: [
-        { title: "Servicios", path: "/admin/servicios", icon: <HandHelping className="size-5 opacity-75" /> },
+        { title: "Encomiendas", path: "/admin/encomiendas", icon: <HandHelping className="size-5 opacity-75" /> },
         { title: "Ventas", path: "/admin/facturacion", icon: <ReceiptText className="size-5 opacity-75" /> },
         { title: "Timbrados", path: "/admin/timbrados", icon: <Stamp className="size-5 opacity-75" /> }
       ]
@@ -88,6 +89,7 @@ const AdminSidebar = () => {
           </span>
         </Link>
       </div>
+      <MobileNavbar/>
     </div>
   );
 };

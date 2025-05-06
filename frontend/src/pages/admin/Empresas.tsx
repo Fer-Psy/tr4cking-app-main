@@ -1,16 +1,25 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Edit, Trash } from "lucide-react";
-import { Empresa } from "../../shared/shared.types";
+
+interface Empresa {
+  id_empresa: number;
+  nombre: string;
+  ruc: string;
+  telefono?: string;
+  email?: string;
+  direccion_legal?: string;
+}
 
 const EMPRESAS_API_URL = "http://127.0.0.1:8000/api/empresas/";
 
 const Empresas = () => {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
-  const [formData, setFormData] = useState<Omit<Empresa, "id">>({
+  const [formData, setFormData] = useState({
     nombre: "",
     ruc: "",
     telefono: "",
+    email: "",
     direccion_legal: "",
   });
   const [empresaEditando, setEmpresaEditando] = useState<number | null>(null);
@@ -33,12 +42,14 @@ const Empresas = () => {
     e.preventDefault();
 
     try {
+      let response;
       if (empresaEditando) {
-        await axios.put(`${EMPRESAS_API_URL}${empresaEditando}/`, formData);
+        response = await axios.put(`${EMPRESAS_API_URL}${empresaEditando}/`, formData);
       } else {
-        await axios.post(EMPRESAS_API_URL, formData);
+        response = await axios.post(EMPRESAS_API_URL, formData);
       }
-
+      
+      console.log('Respuesta:', response.data);
       fetchEmpresas();
       resetForm();
     } catch (error) {
@@ -50,10 +61,11 @@ const Empresas = () => {
     setFormData({
       nombre: empresa.nombre,
       ruc: empresa.ruc,
-      telefono: empresa.telefono,
-      direccion_legal: empresa.direccion_legal,
+      telefono: empresa.telefono || "",
+      email: empresa.email || "",
+      direccion_legal: empresa.direccion_legal || "",
     });
-    setEmpresaEditando(empresa.id);
+    setEmpresaEditando(empresa.id_empresa);
   };
 
   const handleDelete = async (id: number) => {
@@ -70,6 +82,7 @@ const Empresas = () => {
       nombre: "",
       ruc: "",
       telefono: "",
+      email: "",
       direccion_legal: "",
     });
     setEmpresaEditando(null);
@@ -81,11 +94,7 @@ const Empresas = () => {
         Gestión de Empresas
       </h2>
 
-      {/* Formulario */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 p-4 rounded shadow-md grid grid-cols-1 md:grid-cols-2 gap-4"
-      >
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-4 rounded shadow-md grid grid-cols-1 md:grid-cols-2 gap-4">
         <input
           type="text"
           placeholder="Nombre"
@@ -94,6 +103,7 @@ const Empresas = () => {
           onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
           required
         />
+        
         <input
           type="text"
           placeholder="RUC"
@@ -102,6 +112,7 @@ const Empresas = () => {
           onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
           required
         />
+
         <input
           type="text"
           placeholder="Teléfono"
@@ -109,14 +120,24 @@ const Empresas = () => {
           value={formData.telefono}
           onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
         />
+
+        <input
+          type="email"
+          placeholder="Email"
+          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        />
+
         <textarea
           placeholder="Dirección Legal"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600 col-span-2"
           value={formData.direccion_legal}
           onChange={(e) => setFormData({ ...formData, direccion_legal: e.target.value })}
         />
-        <div className="flex space-x-2">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
+
+        <div className="flex space-x-2 col-span-2">
+          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
             {empresaEditando ? "Actualizar" : "Agregar"}
           </button>
           {empresaEditando && (
@@ -131,7 +152,6 @@ const Empresas = () => {
         </div>
       </form>
 
-      {/* Tabla de Empresas */}
       <div className="w-full overflow-x-auto py-4">
         <table className="table w-full border-collapse bg-white dark:bg-gray-800 shadow-md">
           <thead>
@@ -139,6 +159,7 @@ const Empresas = () => {
               <th className="p-2">Nombre</th>
               <th className="p-2">RUC</th>
               <th className="p-2">Teléfono</th>
+              <th className="p-2">Email</th>
               <th className="p-2">Dirección Legal</th>
               <th className="p-2">Acciones</th>
             </tr>
@@ -146,13 +167,14 @@ const Empresas = () => {
           <tbody>
             {empresas.map((empresa) => (
               <tr
-                key={empresa.id}
-                className="row-hover border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                key={empresa.id_empresa}
+                className="border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <td className="p-2">{empresa.nombre}</td>
                 <td className="p-2">{empresa.ruc}</td>
-                <td className="p-2">{empresa.telefono}</td>
-                <td className="p-2">{empresa.direccion_legal}</td>
+                <td className="p-2">{empresa.telefono || "-"}</td>
+                <td className="p-2">{empresa.email || "-"}</td>
+                <td className="p-2">{empresa.direccion_legal || "-"}</td>
                 <td className="p-2 flex space-x-2">
                   <button
                     className="btn btn-circle btn-text btn-sm text-yellow-500"
@@ -164,7 +186,7 @@ const Empresas = () => {
                   <button
                     className="btn btn-circle btn-text btn-sm text-red-500"
                     aria-label="Eliminar"
-                    onClick={() => handleDelete(empresa.id)}
+                    onClick={() => handleDelete(empresa.id_empresa)}
                   >
                     <Trash size={16} />
                   </button>

@@ -1,45 +1,41 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+
+from .views import *
 
 router = DefaultRouter()
 
-#Endpoints
-router.register(r'users', views.UserViewSet)
-router.register(r'groups', views.GroupViewSet)
-router.register(r'permissions', views.PermissionViewSet)
-router.register(r'empresas', views.EmpresaViewSet)
-router.register(r'localidades', views.LocalidadViewSet)
-router.register(r'agencias', views.AgenciaViewSet)
-router.register(r'rutas', views.RutaViewSet)
-router.register(r'buses', views.BusViewSet)
-router.register(r'asientos', views.AsientoViewSet)
-router.register(r'horarios', views.HorarioViewSet)
-router.register(r'viajes', views.ViajeViewSet)
-router.register(r'clientes', views.ClienteViewSet)
-router.register(r'empleados', views.EmpleadoViewSet)
-router.register(r'servicios', views.ServicioViewSet)
-router.register(r'tipos-documento', views.TipoDocumentoViewSet)
-router.register(r'timbrados', views.TimbradoViewSet)
-router.register(r'facturas', views.FacturaViewSet)
-router.register(r'paradas-ruta', views.ParadaRutaViewSet)
+
+router.register(r'users', UserViewSet)
+router.register(r'groups', GroupViewSet)
+router.register(r'permissions', PermissionViewSet)
+
+router.register(r'clientes', ClienteViewSet)
+router.register(r'localidades', LocalidadViewSet)
+router.register(r'empresas', EmpresaViewSet)
+router.register(r'sucursales', SucursalViewSet)
+router.register(r'paradas', ParadaViewSet)
+router.register(r'empleados', EmpleadoViewSet)
+router.register(r'buses', BusViewSet)
+router.register(r'asientos', AsientoViewSet)
+router.register(r'rutas', RutaViewSet)
+router.register(r'detalle-rutas', DetalleRutaViewSet)
+router.register(r'horarios', HorarioViewSet)
+router.register(r'viajes', ViajeViewSet)
+router.register(r'pasajes', PasajeViewSet)
+router.register(r'encomiendas', EncomiendaViewSet)
+router.register(r'tipos-documento', TipoDocumentoViewSet)
+router.register(r'timbrados', TimbradoViewSet)
+router.register(r'facturas', CabeceraFacturaViewSet)
+router.register(r'detalles-factura', DetalleFacturaViewSet)
+router.register(r'historial-facturas', HistorialFacturaViewSet)
+router.register(r'cajas', CajaViewSet)
+router.register(r'cabecera-caja', CabeceraCajaViewSet)
+router.register(r'detalle-caja', DetalleCajaViewSet)
+
 
 # Custom Endpoints
 urlpatterns = [
     path('', include(router.urls)),
     
-    # Rutas especiales
-    path('rutas/<int:pk>/paradas/', views.RutaParadasList.as_view(), name='ruta-paradas'),
-    path('rutas/codigo/<str:codigo>/', views.RutasPorCodigoList.as_view(), name='rutas-por-codigo'),
-    
-    # Viajes especiales
-    path('viajes/por-fecha/<str:fecha>/', views.ViajesPorFechaList.as_view(), name='viajes-por-fecha'),
-    path('viajes/por-ruta/<int:ruta_id>/', views.ViajesPorRutaList.as_view(), name='viajes-por-ruta'),
-    
-    # Facturación
-    path('facturas/<int:pk>/detalles/', views.FacturaDetallesList.as_view(), name='factura-detalles'),
-    path('facturas/generar/', views.GenerarFactura.as_view(), name='generar-factura'),
-    
-    # Autenticación
-    path('auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

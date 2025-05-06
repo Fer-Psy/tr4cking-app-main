@@ -1,24 +1,36 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Edit, Trash } from "lucide-react";
-import { UsuarioDTO, Grupo } from "../../shared/shared.types";
+
+interface Usuario {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  is_active: boolean;
+  groups: number[];
+}
+
+interface Grupo {
+  id: number;
+  name: string;
+}
 
 const USUARIOS_API_URL = "http://127.0.0.1:8000/api/users/";
 const GRUPOS_API_URL = "http://127.0.0.1:8000/api/groups/";
 
 const Usuarios = () => {
-  const [usuarios, setUsuarios] = useState<UsuarioDTO[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [formData, setFormData] = useState<
-    Omit<UsuarioDTO, "id" | "date_joined" | "last_login" | "groups"> & { password?: string; group: number | null }
-  >({
+  const [formData, setFormData] = useState({
     username: "",
     first_name: "",
     last_name: "",
     email: "",
     is_active: true,
     password: "",
-    group: null,
+    group: null as number | null,
   });
   const [usuarioEditando, setUsuarioEditando] = useState<number | null>(null);
 
@@ -67,13 +79,14 @@ const Usuarios = () => {
     }
   };
 
-  const handleEdit = (usuario: UsuarioDTO) => {
+  const handleEdit = (usuario: Usuario) => {
     setFormData({
       username: usuario.username,
       first_name: usuario.first_name,
       last_name: usuario.last_name,
       email: usuario.email,
       is_active: usuario.is_active,
+      password: "",
       group: usuario.groups.length > 0 ? usuario.groups[0] : null,
     });
     setUsuarioEditando(usuario.id);
