@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash, X, Eye } from "lucide-react";
+import { Edit, Trash, X, Eye, Printer } from "lucide-react";
 import createApi from "../../api/apiAll";
 import EncomiendasPDF from './EncomiendasPDF';
-import Modal from 'react-modal'; // Necesitarás instalar esta dependencia
+import Modal from 'react-modal';
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 
-
-// Configuración del modal para accesibilidad
 Modal.setAppElement('#root');
-
-
 
 const encomiendasApi = createApi("encomiendas");
 
@@ -31,42 +27,6 @@ const Encomiendas = () => {
         es_paquete: false,
         total: '0'
     });
-    const resetForm = () => {
-        setFormData({
-            cliente: '',
-            viaje: '',
-            origen: '',
-            destino: '',
-            flete_sobre: '25000',
-            flete_paquete: '40000',
-            cantidad_sobre: '1',
-            cantidad_paquete: '1',
-            descripcion: '',
-            remitente: '',
-            ruc_ci: '',
-            numero_contacto: '',
-            es_sobre: false,
-            es_paquete: false,
-            total: '0'
-        });
-        setEditingId(null);
-    };
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Está seguro de eliminar esta encomienda?')) {
-            try {
-                setLoading(true);
-                await encomiendasApi.delete(id);
-                const response = await encomiendasApi.getAll();
-                setEncomiendas(response.data);
-                alert('Encomienda eliminada correctamente');
-            } catch (error) {
-                console.error('Error deleting data:', error);
-                setError('Error al eliminar la encomienda');
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
 
     const [clientes, setClientes] = useState([]);
     const [viajes, setViajes] = useState([]);
@@ -75,13 +35,14 @@ const Encomiendas = () => {
     const [editingId, setEditingId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [previewData, setPreviewData] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
 
-                // Crear instancias para cada recurso
                 const clientesApi = createApi("clientes");
                 const viajesApi = createApi("viajes");
                 const paradasApi = createApi("paradas");
@@ -108,7 +69,7 @@ const Encomiendas = () => {
 
         fetchData();
     }, []);
-    // Función para calcular el total
+
     const calcularTotal = () => {
         let total = 0;
 
@@ -123,7 +84,6 @@ const Encomiendas = () => {
         return total;
     };
 
-    // Actualizar el total cuando cambian los datos relevantes
     useEffect(() => {
         const nuevoTotal = calcularTotal();
         setFormData(prev => ({
@@ -147,7 +107,6 @@ const Encomiendas = () => {
             [name]: type === 'checkbox' ? checked : value
         }));
 
-        // Resetear cantidad a 0 si se deselecciona el tipo
         if (type === 'checkbox' && name === 'es_sobre' && !checked) {
             setFormData(prev => ({ ...prev, cantidad_sobre: '0' }));
         }
@@ -156,6 +115,26 @@ const Encomiendas = () => {
         }
     };
 
+    const resetForm = () => {
+        setFormData({
+            cliente: '',
+            viaje: '',
+            origen: '',
+            destino: '',
+            flete_sobre: '25000',
+            flete_paquete: '40000',
+            cantidad_sobre: '1',
+            cantidad_paquete: '1',
+            descripcion: '',
+            remitente: '',
+            ruc_ci: '',
+            numero_contacto: '',
+            es_sobre: false,
+            es_paquete: false,
+            total: '0'
+        });
+        setEditingId(null);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -168,7 +147,6 @@ const Encomiendas = () => {
         try {
             setLoading(true);
 
-            // Preparar los datos en el formato que espera el backend
             const dataToSend = {
                 viaje: formData.viaje,
                 cliente: formData.cliente,
@@ -191,7 +169,6 @@ const Encomiendas = () => {
                 await encomiendasApi.create(dataToSend);
             }
 
-            // Actualizar la lista de encomiendas
             const response = await encomiendasApi.getAll();
             setEncomiendas(response.data);
 
@@ -202,7 +179,6 @@ const Encomiendas = () => {
             let errorMessage = 'Error al guardar los datos';
             if (err.response) {
                 if (err.response.data) {
-                    // Mostrar errores de validación específicos
                     if (typeof err.response.data === 'object') {
                         errorMessage = Object.values(err.response.data).join('\n');
                     } else {
@@ -216,6 +192,7 @@ const Encomiendas = () => {
             setLoading(false);
         }
     };
+
     const handleEdit = (encomienda) => {
         const isSobre = encomienda.tipo_envio === 'sobre' || encomienda.tipo_envio === 'ambos';
         const isPaquete = encomienda.tipo_envio === 'paquete' || encomienda.tipo_envio === 'ambos';
@@ -240,11 +217,23 @@ const Encomiendas = () => {
         setEditingId(encomienda.id_encomienda);
     };
 
-    // Agrega estos nuevos estados
-    const [previewData, setPreviewData] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const handleDelete = async (id) => {
+        if (window.confirm('¿Está seguro de eliminar esta encomienda?')) {
+            try {
+                setLoading(true);
+                await encomiendasApi.delete(id);
+                const response = await encomiendasApi.getAll();
+                setEncomiendas(response.data);
+                alert('Encomienda eliminada correctamente');
+            } catch (error) {
+                console.error('Error deleting data:', error);
+                setError('Error al eliminar la encomienda');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
 
-    // Función para abrir la vista previa
     const handlePreview = (encomienda) => {
         const cliente = clientes.find(c => c.id === encomienda.cliente?.id || c.id === encomienda.cliente);
         const viaje = viajes.find(v => v.id_viaje === encomienda.viaje?.id_viaje || v.id_viaje === encomienda.viaje);
@@ -253,15 +242,12 @@ const Encomiendas = () => {
 
         setPreviewData({
             ...encomienda,
-            // Datos completos del cliente
             clienteData: cliente ? {
                 nombre: cliente.razon_social,
                 ruc: cliente.ruc,
                 telefono: cliente.telefono,
                 direccion: cliente.direccion
             } : null,
-
-            // Datos completos del viaje
             viajeData: viaje ? {
                 id: viaje.id_viaje,
                 fecha: viaje.fecha,
@@ -270,19 +256,14 @@ const Encomiendas = () => {
                     empresa: viaje.bus.empresa?.nombre || 'N/A'
                 } : null
             } : null,
-
-            // Datos de origen y destino
             origenData: origenParada ? {
                 nombre: origenParada.nombre,
                 direccion: origenParada.direccion
             } : null,
-
             destinoData: destinoParada ? {
                 nombre: destinoParada.nombre,
                 direccion: destinoParada.direccion
             } : null,
-
-            // Datos de la encomienda
             encomiendaData: {
                 tipo: encomienda.tipo_envio,
                 cantidadSobres: encomienda.cantidad_sobre,
@@ -296,14 +277,10 @@ const Encomiendas = () => {
 
         setIsModalOpen(true);
     };
-    // Función para cerrar el modal
+
     const closeModal = () => {
         setIsModalOpen(false);
     };
-
-
-
-    // ... (resto de las funciones handleDelete, resetForm permanecen iguales)
 
     return (
         <div className="bg-gray-800 text-white p-6 rounded-xl shadow-md">
@@ -347,16 +324,16 @@ const Encomiendas = () => {
                     </select>
                 </div>
 
-                {/* Información del Remitente - Una fila con 3 columnas */}
+                {/* Información del Remitente */}
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Remitente</label>
+                        <label className="block text-sm font-medium mb-1">Destinatario</label>
                         <input
                             type="text"
                             name="remitente"
                             value={formData.remitente}
                             onChange={handleChange}
-                            placeholder="Nombre del remitente"
+                            placeholder="Nombre del Destinatario"
                             className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                             disabled={loading}
@@ -392,7 +369,7 @@ const Encomiendas = () => {
                     </div>
                 </div>
 
-                {/* Origen y Destino - Una fila con 2 columnas */}
+                {/* Origen y Destino */}
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Origen</label>
@@ -428,6 +405,7 @@ const Encomiendas = () => {
                         </select>
                     </div>
                 </div>
+
                 {/* Tipo de envío */}
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-2">Tipo de Envío</label>
@@ -590,7 +568,7 @@ const Encomiendas = () => {
                                     <th className="p-2 text-left">Tipo</th>
                                     <th className="p-2 text-left">Cantidad</th>
                                     <th className="p-2 text-left">Total</th>
-                                    <th className="p-2 text-left">Remitente</th>
+                                    <th className="p-2 text-left">Destinatario</th>
                                     <th className="p-2 text-left">Contacto</th>
                                     <th className="p-2 text-left">Descripción</th>
                                     <th className="p-2 text-left">Acciones</th>
@@ -612,7 +590,11 @@ const Encomiendas = () => {
                                             <td className="p-2">{origenParada?.nombre || 'N/A'}</td>
                                             <td className="p-2">{destinoParada?.nombre || 'N/A'}</td>
                                             <td className="p-2 capitalize">{enc.tipo_envio || 'N/A'}</td>
-                                            <td className="p-2">{enc.cantidad || '1'}</td>
+                                            <td className="p-2">
+                                                {enc.tipo_envio === 'sobre' ? enc.cantidad_sobre :
+                                                    enc.tipo_envio === 'paquete' ? enc.cantidad_paquete :
+                                                        `${enc.cantidad_sobre} sobres, ${enc.cantidad_paquete} paquetes`}
+                                            </td>
                                             <td className="p-2">{enc.flete ? `Gs. ${parseInt(enc.flete).toLocaleString()}` : 'N/A'}</td>
                                             <td className="p-2">
                                                 <div>{enc.remitente || 'N/A'}</div>
@@ -637,6 +619,14 @@ const Encomiendas = () => {
                                                 >
                                                     <Trash size={16} />
                                                 </button>
+                                                <button
+                                                    className="text-blue-500 hover:text-blue-600 transition disabled:opacity-50"
+                                                    aria-label="Vista previa"
+                                                    onClick={() => handlePreview(enc)}
+                                                    disabled={loading}
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
                                             </td>
                                         </tr>
                                     );
@@ -646,85 +636,140 @@ const Encomiendas = () => {
                     </div>
                 )}
             </div>
+
             {/* Modal de vista previa */}
             <Modal
                 isOpen={isModalOpen}
                 onRequestClose={closeModal}
                 contentLabel="Vista previa de encomienda"
-                className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 p-6 rounded-lg w-[90%] max-w-4xl max-h-[90vh] overflow-auto outline-none z-[1000]"
-                overlayClassName="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[1000]"
+                className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg w-[90%] max-w-4xl max-h-[90vh] overflow-auto outline-none shadow-xl border border-gray-200"
+                overlayClassName="fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[1000] backdrop-blur-sm"
             >
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-4xl mx-auto max-h-[80vh] overflow-auto">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold dark:text-white">Detalles Completos de Encomienda</h2>
-                        <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
+                <div className="bg-white p-6 rounded-lg max-w-4xl mx-auto max-h-[80vh] overflow-auto">
+                    <div className="flex justify-between items-center mb-6 border-b pb-4">
+                        <h2 className="text-2xl font-bold text-gray-800">Detalles de Encomienda</h2>
+                        <button
+                            onClick={closeModal}
+                            className="text-gray-500 hover:text-gray-700 transition-colors"
+                        >
                             <X size={24} />
                         </button>
                     </div>
 
                     {previewData && (
                         <>
-                            {/* Vista previa resumida */}
-                            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Cliente</h3>
-                                    <p>{previewData.clienteData?.nombre}</p>
-                                    <p>RUC: {previewData.clienteData?.ruc}</p>
+                            {/* Sección de información */}
+                            <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Columna izquierda */}
+                                <div className="space-y-4">
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h3 className="font-semibold text-lg text-gray-700 mb-2">Cliente</h3>
+                                        <p className="text-gray-600">{previewData.clienteData?.nombre}</p>
+                                        <p className="text-gray-600">RUC: {previewData.clienteData?.ruc}</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h3 className="font-semibold text-lg text-gray-700 mb-2">Viaje</h3>
+                                        <p className="text-gray-600">Bus: {previewData.viajeData?.bus?.placa}</p>
+                                        <p className="text-gray-600">Empresa: {previewData.viajeData?.bus?.empresa}</p>
+                                        <p className="text-gray-600">Fecha: {previewData.viajeData?.fecha}</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h3 className="font-semibold text-lg text-gray-700 mb-2">Origen</h3>
+                                        <p className="text-gray-600">{previewData.origenData?.nombre}</p>
+                                        <p className="text-gray-600">{previewData.origenData?.direccion}</p>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Viaje</h3>
-                                    <p>Bus: {previewData.viajeData?.bus?.placa}</p>
-                                    <p>Fecha: {previewData.viajeData?.fecha}</p>
+
+                                {/* Columna derecha */}
+                                <div className="space-y-4">
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h3 className="font-semibold text-lg text-gray-700 mb-2">Destino</h3>
+                                        <p className="text-gray-600">{previewData.destinoData?.nombre}</p>
+                                        <p className="text-gray-600">{previewData.destinoData?.direccion}</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h3 className="font-semibold text-lg text-gray-700 mb-2">Detalles de Envío</h3>
+                                        <p className="text-gray-600">Tipo: {previewData.encomiendaData?.tipo}</p>
+                                        <p className="text-gray-600">Sobres: {previewData.encomiendaData?.cantidadSobres || 0}</p>
+                                        <p className="text-gray-600">Paquetes: {previewData.encomiendaData?.cantidadPaquetes || 0}</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-4 rounded-lg">
+                                        <h3 className="font-semibold text-lg text-gray-700 mb-2">Destinatario</h3>
+                                        <p className="text-gray-600">{previewData.encomiendaData?.remitente}</p>
+                                        <p className="text-gray-600">Contacto: {previewData.encomiendaData?.contacto}</p>
+                                        <p className="text-gray-600">RUC/CI: {previewData.ruc_ci}</p>
+                                    </div>
                                 </div>
-                                {/* Agrega más secciones según necesites */}
+
+                                {/* Descripción completa */}
+                                <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
+                                    <h3 className="font-semibold text-lg text-gray-700 mb-2">Descripción</h3>
+                                    <p className="text-gray-600 whitespace-pre-line">{previewData.encomiendaData?.descripcion}</p>
+                                </div>
+
+                                {/* Total */}
+                                <div className="md:col-span-2 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                    <h3 className="font-semibold text-lg text-blue-700 mb-2">Total a Pagar</h3>
+                                    <p className="text-2xl font-bold text-blue-600">
+                                        Gs. {parseInt(previewData.encomiendaData?.total || 0).toLocaleString()}
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Visor PDF */}
-                            <div className="h-[60vh] border rounded-md">
-                                <PDFViewer width="100%" height="100%">
-                                    <EncomiendasPDF data={previewData} />
-                                </PDFViewer>
+                            <div className="mb-6">
+                                <h3 className="font-semibold text-lg text-gray-700 mb-3">Vista Previa del Comprobante</h3>
+                                <div className="h-[60vh] border rounded-md shadow-inner bg-gray-50">
+                                    <PDFViewer width="100%" height="100%">
+                                        <EncomiendasPDF data={previewData} />
+                                    </PDFViewer>
+                                </div>
                             </div>
                         </>
                     )}
 
-                    <div className="mt-4 flex justify-end gap-2">
+                    {/* Botones de acción */}
+                    <div className="mt-6 flex justify-end gap-3 border-t pt-4">
                         <button
                             onClick={closeModal}
-                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+                            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-5 py-2 rounded-md transition duration-200 flex items-center gap-2"
                         >
-                            Cerrar
+                            <X size={18} /> Cerrar
                         </button>
+
                         <PDFDownloadLink
                             document={<EncomiendasPDF data={previewData} />}
                             fileName={`encomienda_${previewData?.clienteData?.nombre || 'generica'}.pdf`}
                         >
                             {({ loading }) => (
                                 <button
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-md transition duration-200 flex items-center gap-2 disabled:opacity-50"
                                     disabled={loading}
                                 >
-                                    {loading ? 'Generando...' : 'Descargar PDF'}
+                                    {loading ? (
+                                        <span className="flex items-center gap-2">
+                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Generando...
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            <Printer size={18} /> Descargar PDF
+                                        </span>
+                                    )}
                                 </button>
                             )}
                         </PDFDownloadLink>
                     </div>
                 </div>
             </Modal>
-            <div className="flex gap-2">
-                <button
-                    onClick={() => handlePreview(enc)}
-                    className="p-1 text-blue-500 hover:bg-blue-50 rounded transition-colors"
-                    title="Vista previa"
-                >
-                    <Eye size={18} />
-                </button>Vista Previa
-
-            </div>
         </div>
-
-
-
     );
 };
 

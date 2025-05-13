@@ -66,7 +66,7 @@ const EncomiendasPDF = ({ data }) => (
                     <Text>{data.encomiendaData?.tipo || 'N/A'}</Text>
                 </View>
                 <View style={styles.row}>
-                    <Text style={styles.label}>Remitente:</Text>
+                    <Text style={styles.label}>Destinatario:</Text>
                     <Text>{data.encomiendaData?.remitente || 'N/A'}</Text>
                 </View>
                 {/* Agrega todos los campos de la encomienda */}
