@@ -81,7 +81,6 @@ class EncomiendaViewSet(viewsets.ModelViewSet):
     queryset = Encomienda.objects.all()
     serializer_class = EncomiendaSerializer
 
-
 class TipoDocumentoViewSet(viewsets.ModelViewSet):
     queryset = TipoDocumento.objects.all()
     serializer_class = TipoDocumentoSerializer

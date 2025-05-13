@@ -188,16 +188,34 @@ class Pasaje(models.Model):
     viaje = models.ForeignKey(Viaje, on_delete=models.CASCADE)
     asiento = models.ForeignKey(Asiento, on_delete=models.CASCADE)
 
+
+#modificacion de encomienda de a cuerdo al frontend
+
 class Encomienda(models.Model):
+    TIPO_ENVIO_CHOICES = [
+        ('sobre', 'Sobre'),
+        ('paquete', 'Paquete'),
+        ('ambos', 'Ambos'),
+    ]
+
     id_encomienda = models.BigAutoField(primary_key=True)
     viaje = models.ForeignKey(Viaje, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     origen = models.ForeignKey(DetalleRuta, on_delete=models.CASCADE, related_name='origen_encomienda')
     destino = models.ForeignKey(DetalleRuta, on_delete=models.CASCADE, related_name='destino_encomienda')
-    flete = models.CharField(max_length=30)
+    flete = models.DecimalField(max_digits=12, decimal_places=2)
+    remitente = models.CharField(max_length=100)
+    ruc_ci = models.CharField(max_length=20)
+    numero_contacto = models.CharField(max_length=20)
+    tipo_envio = models.CharField(max_length=10, choices=TIPO_ENVIO_CHOICES)
+    cantidad_sobre = models.PositiveIntegerField(default=0)
+    cantidad_paquete = models.PositiveIntegerField(default=0)
     descripcion = models.TextField(blank=True, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
 
-
+    def __str__(self):
+        return f"Encomienda #{self.id_encomienda} - {self.get_tipo_envio_display()}"
     
 
 

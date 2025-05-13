@@ -46,7 +46,7 @@ class LocalidadSerializer(serializers.ModelSerializer):
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empresa
-        fields = '__all__'
+        fields = ['nombre']
 
 class SucursalSerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,9 +64,11 @@ class EmpleadoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class BusSerializer(serializers.ModelSerializer):
+    empresa = EmpresaSerializer()
+
     class Meta:
         model = Bus
-        fields = '__all__'
+        fields = ['placa', 'empresa']
 
 class RutaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -84,9 +86,11 @@ class HorarioSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ViajeSerializer(serializers.ModelSerializer):
+    bus = BusSerializer()
+
     class Meta:
         model = Viaje
-        fields = '__all__'
+        fields = ['id_viaje', 'fecha', 'bus']
 
 class AsientoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -98,11 +102,21 @@ class PasajeSerializer(serializers.ModelSerializer):
         model = Pasaje
         fields = '__all__'
 
+#encomienda modificado
 class EncomiendaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Encomienda
         fields = '__all__'
-
+        extra_kwargs = {
+            'flete': {'required': True},
+            'origen': {'required': True},
+            'destino': {'required': True},
+            'viaje': {'required': True},
+            'cliente': {'required': True},
+            'remitente': {'required': True},
+            'ruc_ci': {'required': True},
+            'tipo_envio': {'required': True}
+        }
 
 class TipoDocumentoSerializer(serializers.ModelSerializer):
     class Meta:
