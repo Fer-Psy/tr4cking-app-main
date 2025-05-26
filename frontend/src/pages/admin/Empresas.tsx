@@ -114,7 +114,7 @@ const Empresas = () => {
         />
 
         <input
-          type="text"
+          type="tel"
           placeholder="Teléfono"
           className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
           value={formData.telefono}

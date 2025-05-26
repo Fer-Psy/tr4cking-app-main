@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Cliente, Localidad, Empresa, Sucursal, Parada, Empleado,
+    Cliente, Localidad, Empresa, Parada, Empleado,
     Bus, Asiento, Ruta, DetalleRuta, Horario, Viaje,
     Pasaje, Encomienda, TipoDocumento, Timbrado,
     CabeceraFactura, DetalleFactura, HistorialFactura,
@@ -10,7 +10,6 @@ from .models import (
 admin.site.register(Cliente)
 admin.site.register(Localidad)
 admin.site.register(Empresa)
-admin.site.register(Sucursal)
 admin.site.register(Parada)
 admin.site.register(Empleado)
 admin.site.register(Bus)

@@ -42,7 +42,7 @@ const Usuarios = () => {
 
   const fetchUsuarios = async () => {
     try {
-      const response = await axios.get(USUARIOS_API_URL);
+      const response = await axios.get<Usuario[]>(USUARIOS_API_URL);
       setUsuarios(response.data);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
@@ -51,7 +51,7 @@ const Usuarios = () => {
 
   const fetchGrupos = async () => {
     try {
-      const response = await axios.get(GRUPOS_API_URL);
+      const response = await axios.get<Grupo[]>(GRUPOS_API_URL);
       setGrupos(response.data);
     } catch (error) {
       console.error("Error al obtener grupos:", error);

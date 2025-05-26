@@ -1,9 +1,35 @@
 import { useState } from "react";
 import { ClientesModal } from "./ClientesModal";
-import { ServiciosModal } from "./ServiciosModal";
+import { EncomiendaModal } from "./EncomiendaModal";
+import { useEffect } from "react";
+import axios from "axios";
 
 const Facturacion = () => {
   const today = new Date().toISOString().split("T")[0];
+
+  const [cajaAbierta, setCajaAbierta] = useState(null);
+  useEffect(() => {
+  const obtenerCajaAbierta = async () => {
+    try {
+      const response = await axios.get("/api/cajas/");
+      const cajasAbiertas = response.data;
+      const abierta = cajasAbiertas.filter(caja => caja.estado === "Abierta");
+
+      if (abierta.length > 0) {
+        // Tomamos la primera caja abierta (asumiendo que solo hay una)
+        setCajaAbierta(abierta[0]); 
+      } else {
+        setCajaAbierta(null);
+      }
+    } catch (error) {
+      console.error("Error al obtener la caja abierta:", error);
+    }
+  };
+
+  obtenerCajaAbierta();
+}, []);
+
+
 
   const [factura, setFactura] = useState({
     numero: "0001",
@@ -17,7 +43,6 @@ const Facturacion = () => {
   });
 
   const [modalActivo, setModalActivo] = useState(null); // null, "cliente", "servicio"
-
 
   const [servicio, setServicio] = useState({
     codigo: "",
@@ -38,8 +63,6 @@ const Facturacion = () => {
     setCliente({ ...cliente, [e.target.name]: e.target.value });
   };
 
-
-
   const agregarProducto = (e) => {
     e.preventDefault();
     if (servicio.codigo && servicio.descripcion) {
@@ -57,164 +80,188 @@ const Facturacion = () => {
 
   const seleccionarCliente = (clienteSeleccionado) => {
     setCliente({
-      ruc: clienteSeleccionado.ruc || "",
-      nombre: clienteSeleccionado.usuario_nombre || "", 
+      ruc: `${clienteSeleccionado.cedula}-${clienteSeleccionado.dv}`, // Formatea el RUC como "cedula-dv"
+      nombre: clienteSeleccionado.razon_social, // Usa razon_social en lugar de usuario_nombre
     });
     setModalActivo(null);
   };
-  
+
   return (
     <div className="p-2">
       <div className="flex justify-end mb-2 py-0.5">
-        <button className="bg-blue-950 hover:bg-gray-500 text-white font-semibold px-3 py-1 rounded flex items-center gap-2">
-          <span className="relative flex size-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
-            <span className="relative inline-flex size-3 rounded-full bg-sky-500"></span>
-          </span>
-          Caja 1
-        </button>
+        {cajaAbierta ? (
+          <button className="bg-blue-950 hover:bg-gray-500 text-white font-semibold px-3 py-1 rounded flex items-center gap-2">
+            <span className="relative flex size-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
+              <span className="relative inline-flex size-3 rounded-full bg-sky-500"></span>
+            </span>
+            {`${cajaAbierta.nombre} Abierta`}
+          </button>
+        ) : (
+          <button className="bg-red-600 text-white font-semibold px-3 py-1 rounded">
+            No hay caja abierta
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Información de la Factura */}
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-blue-600 text-lg font-bold mb-4">Información de la Factura</h3>
-          <form>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Factura N°</label>
-              <input
-                type="text"
-                name="numero"
-                value={factura.numero}
-                onChange={handleFacturaChange}
-                className="w-full border rounded p-2"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Fecha</label>
-              <input
-                type="date"
-                name="fecha"
-                value={factura.fecha}
-                onChange={handleFacturaChange}
-                className="w-full border rounded p-2"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Término</label>
-              <select
-                name="termino"
-                value={factura.termino}
-                onChange={handleFacturaChange}
-                className="w-full border rounded p-2"
-              >
-                <option>Contado</option>
-              </select>
-            </div>
-          </form>
-        </div>
-
-        {/* Datos del Cliente */}
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="text-blue-600 text-lg font-bold mb-4">Datos del Cliente</h3>
-          <form>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">RUC</label>
-              <input
-                type="text"
-                name="ruc"
-                value={cliente.ruc}
-                onChange={handleClienteChange}
-                className="w-full border rounded p-2"
-                placeholder="Ingrese RUC"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Nombre Cliente</label>
-              <input
-                type="text"
-                name="nombre"
-                value={cliente.nombre}
-                onChange={handleClienteChange}
-                className="w-full border rounded p-2"
-                placeholder="Ingrese Nombre"
-              />
-            </div>
-            <button
-              type="button"
-              className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-400"
-              onClick={() => setModalActivo("cliente")}
+      {/* Bloque de Información de Factura */}
+      <div className="bg-white p-4 rounded shadow mb-4">
+        <h3 className="text-blue-600 text-lg font-bold mb-4">Información de la Factura</h3>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium">Factura N°</label>
+            <input
+              type="text"
+              name="numero"
+              value={factura.numero}
+              onChange={handleFacturaChange}
+              className="w-full border rounded p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Fecha</label>
+            <input
+              type="date"
+              name="fecha"
+              value={factura.fecha}
+              onChange={handleFacturaChange}
+              className="w-full border rounded p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Término</label>
+            <select
+              name="termino"
+              value={factura.termino}
+              onChange={handleFacturaChange}
+              className="w-full border rounded p-2"
             >
-              Buscar Cliente
-            </button>
-
-          </form>
+              <option>Contado</option>
+            </select>
+          </div>
         </div>
+      </div>
 
-        {/* Servicio */}
-        <div className="bg-white p-4 rounded shadow">
-          <form onSubmit={agregarProducto}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Código</label>
-              <input
-                type="text"
-                name="codigo"
-                value={servicio.codigo}
-                onChange={handleServicioChange}
-                className="w-full border rounded p-2"
-                placeholder="Ingrese el código"
-              />
+      {/* Bloque de Datos del Cliente */}
+      <div className="bg-white p-4 rounded shadow mb-4">
+        <h3 className="text-blue-600 text-lg font-bold mb-4">Datos del Cliente</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium">RUC</label>
+            <input
+              type="text"
+              name="ruc"
+              value={cliente.ruc}
+              onChange={handleClienteChange}
+              className="w-full border rounded p-2"
+              placeholder="Ingrese RUC"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium">Nombre Cliente</label>
+            <input
+              type="text"
+              name="nombre"
+              value={cliente.nombre}
+              onChange={handleClienteChange}
+              className="w-full border rounded p-2"
+              placeholder="Ingrese Nombre"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          <button
+            type="button"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-400"
+            onClick={() => setModalActivo("cliente")}
+          >
+            Buscar Cliente
+          </button>
+          <button
+            type="button"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-400"
+            onClick={() => setModalActivo("cliente")}
+          >
+            Buscar Reservas
+          </button>
+
+        </div>
+      </div>
+      {/* Bloque de Agregar Servicios */}
+      <div className="bg-white p-4 rounded shadow mb-6">
+        <h3 className="text-blue-600 text-lg font-bold mb-4">Agregar Servicios</h3>
+        <form onSubmit={agregarProducto}>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium">Código</label>
+                <input
+                  type="text"
+                  name="codigo"
+                  value={servicio.codigo}
+                  onChange={handleServicioChange}
+                  className="w-full border rounded p-2"
+                  placeholder="Código"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium">Descripción</label>
+                <input
+                  type="text"
+                  name="descripcion"
+                  value={servicio.descripcion}
+                  onChange={handleServicioChange}
+                  className="w-full border rounded p-2"
+                  placeholder="Descripción"
+                />
+              </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Descripción</label>
-              <input
-                type="text"
-                name="descripcion"
-                value={servicio.descripcion}
-                onChange={handleServicioChange}
-                className="w-full border rounded p-2"
-                placeholder="Ingrese la descripción"
-              />
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium">Cantidad</label>
+                <input
+                  type="number"
+                  name="cantidad"
+                  value={servicio.cantidad}
+                  onChange={handleServicioChange}
+                  className="w-full border rounded p-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Precio</label>
+                <input
+                  type="number"
+                  name="precio"
+                  value={servicio.precio}
+                  onChange={handleServicioChange}
+                  className="w-full border rounded p-2"
+                />
+              </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Cantidad</label>
-              <input
-                type="number"
-                name="cantidad"
-                value={servicio.cantidad}
-                onChange={handleServicioChange}
-                className="w-full border rounded p-2"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium">Precio</label>
-              <input
-                type="number"
-                name="precio"
-                value={servicio.precio}
-                onChange={handleServicioChange}
-                className="w-full border rounded p-2"
-              />
-            </div>
-            
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-4">
             <button
               type="button"
-              className="mt-2 bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-400"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-400"
               onClick={() => setModalActivo("servicio")}
             >
-              Buscar Servicios
+              Buscar Reservas
+            </button>
+            <button
+              type="button"
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-400"
+              onClick={() => setModalActivo("encomiendas")} // Asegúrate de manejar este estado
+            >
+              Buscar Encomiendas
             </button>
             <button
               type="submit"
-              className="bg-green-500 text-white px-4 py-2 rounded w-full hover:bg-green-400"
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-400"
             >
               Agregar Servicio
             </button>
-
-          </form>
-
-
-        </div>
+          </div>
+        </form>
       </div>
 
       {/* Tabla de servicios */}
@@ -296,8 +343,8 @@ const Facturacion = () => {
             </tr>
           </tfoot>
         </table>
-
       </div>
+
       {/* Modal de clientes */}
       <ClientesModal
         open={modalActivo === "cliente"}
@@ -305,20 +352,19 @@ const Facturacion = () => {
         onSelect={seleccionarCliente}
       />
 
-      <ServiciosModal
-        open={modalActivo === "servicio"}
+      <EncomiendaModal
+        open={modalActivo === "encomiendas"}
         onClose={() => setModalActivo(null)}
         onSelect={(servicioSeleccionado) => {
           setServicio({
             codigo: servicioSeleccionado.id.toString(),
             descripcion: `${servicioSeleccionado.tipo} - ${servicioSeleccionado.cliente}`,
             cantidad: 1,
-            precio: servicioSeleccionado.precio || 0, // si tu API ya tiene el precio
+            precio: servicioSeleccionado.precio || 0,
           });
           setModalActivo(null);
         }}
       />
-
 
       {/* Botón de guardar */}
       <div className="mt-4 flex gap-4">
@@ -345,8 +391,6 @@ const Facturacion = () => {
           Generar Factura
         </button>
       </div>
-
-
     </div>
   );
 };

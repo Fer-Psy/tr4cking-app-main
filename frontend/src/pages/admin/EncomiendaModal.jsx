@@ -3,9 +3,9 @@ import createApi from "../../api/apiAll";
 import { TablaAll } from "../../components/TablaAll";
 import * as Dialog from "@radix-ui/react-dialog";
 
-const clientesApi = createApi("clientes");
+const encomiendasApi = createApi("encomienda");
 
-export function ClientesModal({ open, onClose, onSelect }) {
+export function EncomiendaModal({ open, onClose, onSelect }) {
     const [clientes, setClientes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -17,11 +17,11 @@ export function ClientesModal({ open, onClose, onSelect }) {
             setLoading(true);
             setError(null);
             try {
-                const res = await clientesApi.getAll();
-                setClientes(res.data);
+                const res = await encomiendasApi.getAll();
+                setEncomiendas(res.data);
             } catch (err) {
-                console.error("Error al cargar clientes:", err);
-                setError("No se pudo cargar la lista de clientes.");
+                console.error("Error al cargar encomiendas:", err);
+                setError("No se pudo cargar la lista de encomiendas.");
             } finally {
                 setLoading(false);
             }
@@ -31,14 +31,10 @@ export function ClientesModal({ open, onClose, onSelect }) {
     }, [open]);
 
     const columns = [
-        { header: "ID", accessorKey: "id_cliente" },
-        { header: "Razón Social", accessorKey: "razon_social" },
-        { header: "Cédula", accessorKey: "cedula" },
-        {
-            header: "RUC",
-            cell: ({ row }) => `${row.original.cedula}-${row.original.dv}`
-        },
-
+        { header: "ID", accessorKey: "id_encomienda" },
+        { header: "Destinatario", accessorKey: "remitente" },
+        { header: "CI/RUC", accessorKey: "ruc_ci" },
+        
         {
             header: "Acciones",
             id: "acciones",
@@ -66,7 +62,7 @@ export function ClientesModal({ open, onClose, onSelect }) {
                 >
                     {/* Título y descripción accesible */}
                     <Dialog.Title className="mb-4 text-lg font-semibold">
-                        Lista de Clientes
+                        Lista de Encomiendas
                     </Dialog.Title>
                     <p id="dialog-description" className="sr-only">
                         Diálogo para seleccionar un cliente de la lista.

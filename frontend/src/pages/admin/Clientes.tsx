@@ -11,7 +11,7 @@ interface Usuario {
 }
 
 interface Cliente {
-  id_cliente: number;
+  id: number;
   usuario?: number; // Cambiado de id_usuario a usuario (el ID)
   usuario_data?: Usuario; // El objeto usuario completo que viene del backend
   ruc: string;
@@ -63,7 +63,7 @@ const Clientes = () => {
   const fetchUsuarios = async () => {
     try {
       const response = await axios.get(USUARIOS_API_URL);
-      setUsuarios(response.data);
+      setUsuarios(response.data as Usuario[]);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
     }
@@ -71,7 +71,7 @@ const Clientes = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Enviando formData:', formData); // Debug
+    console.log('Enviando formData:', formData);
 
     try {
       let response;
@@ -81,24 +81,29 @@ const Clientes = () => {
         response = await axios.post(CLIENTES_API_URL, formData);
       }
       
-      console.log('Respuesta del servidor:', response.data); // Debug
+      console.log('Respuesta del servidor:', response.data);
       
-      // Actualizar el estado directamente con la respuesta
       if (clienteEditando) {
         setClientes(prevClientes => 
           prevClientes.map(cliente => 
-            cliente.id_cliente === clienteEditando ? response.data : cliente
+            cliente.id === clienteEditando ? (response.data as Cliente) : cliente
           )
         );
       } else {
-        setClientes(prevClientes => [...prevClientes, response.data]);
+        setClientes(prevClientes => [...prevClientes, response.data as Cliente]);
       }
 
       resetForm();
-    } catch (error) {
-      console.error("Error completo:", error);
-      if (axios.isAxiosError(error)) {
-        console.error("Datos del error:", error.response?.data);
+    } catch (error: any) { // Cambiamos unknown por any
+      if (error.response) {
+        // Error de respuesta del servidor (status !== 2xx)
+        console.error("Error del servidor:", error.response.data);
+      } else if (error.request) {
+        // Error de red o solicitud no completada
+        console.error("Error de red:", error.request);
+      } else {
+        // Otro tipo de error
+        console.error("Error:", error.message);
       }
     }
   };
@@ -113,7 +118,7 @@ const Clientes = () => {
       direccion: cliente.direccion,
       usuario: cliente.usuario || null,
     });
-    setClienteEditando(cliente.id_cliente);
+    setClienteEditando(cliente.id);
   };
 
   const handleDelete = async (id: number) => {
@@ -231,7 +236,7 @@ const Clientes = () => {
           </thead>
           <tbody>
             {clientes.map((cliente) => (
-              <tr key={cliente.id_cliente} className="border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <tr key={cliente.id} className="border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <td className="p-2">{cliente.ruc}</td>
                 <td className="p-2">{cliente.dv || "-"}</td>
                 <td className="p-2">{cliente.razon_social}</td>
@@ -258,7 +263,7 @@ const Clientes = () => {
                   <button
                     className="btn btn-circle btn-text btn-sm text-red-500"
                     aria-label="Eliminar"
-                    onClick={() => handleDelete(cliente.id_cliente)}
+                    onClick={() => handleDelete(cliente.id)}
                   >
                     <Trash size={20} />
                   </button>

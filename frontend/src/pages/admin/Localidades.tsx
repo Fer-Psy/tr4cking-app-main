@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Edit, Trash } from "lucide-react";
-import { Localidad } from "../../shared/shared.types";
+
+interface Localidad {
+  id_localidad: number;
+  nombre: string;
+  coordenadas: number | null;
+}
 
 const LOCALIDADES_API_URL = "http://127.0.0.1:8000/api/localidades/";
 
 const Localidades = () => {
   const [localidades, setLocalidades] = useState<Localidad[]>([]);
-  const [formData, setFormData] = useState<Omit<Localidad, "id">>({
+  const [formData, setFormData] = useState({
     nombre: "",
-    tipo: "ciudad",
-    es_terminal: false,
     coordenadas: "",
   });
   const [localidadEditando, setLocalidadEditando] = useState<number | null>(null);
@@ -30,14 +33,18 @@ const Localidades = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const dataToSend = {
+      ...formData,
+      coordenadas: formData.coordenadas ? Number(formData.coordenadas) : null
+    };
 
     try {
       if (localidadEditando) {
-        await axios.put(`${LOCALIDADES_API_URL}${localidadEditando}/`, formData);
+        await axios.put(`${LOCALIDADES_API_URL}${localidadEditando}/`, dataToSend);
       } else {
-        await axios.post(LOCALIDADES_API_URL, formData);
+        await axios.post(LOCALIDADES_API_URL, dataToSend);
       }
-
       fetchLocalidades();
       resetForm();
     } catch (error) {
@@ -48,11 +55,9 @@ const Localidades = () => {
   const handleEdit = (localidad: Localidad) => {
     setFormData({
       nombre: localidad.nombre,
-      tipo: localidad.tipo,
-      es_terminal: localidad.es_terminal,
-      coordenadas: localidad.coordenadas,
+      coordenadas: localidad.coordenadas?.toString() || "",
     });
-    setLocalidadEditando(localidad.id);
+    setLocalidadEditando(localidad.id_localidad);
   };
 
   const handleDelete = async (id: number) => {
@@ -67,8 +72,6 @@ const Localidades = () => {
   const resetForm = () => {
     setFormData({
       nombre: "",
-      tipo: "ciudad",
-      es_terminal: false,
       coordenadas: "",
     });
     setLocalidadEditando(null);
@@ -81,51 +84,46 @@ const Localidades = () => {
       </h2>
 
       {/* Formulario */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 p-4 rounded shadow-md grid grid-cols-1 md:grid-cols-2 gap-4"
-      >
-        <input
-          type="text"
-          placeholder="Nombre"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.nombre}
-          onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-          required
-        />
-        <select
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.tipo}
-          onChange={(e) => setFormData({ ...formData, tipo: e.target.value as Localidad["tipo"] })}
-        >
-          <option value="ciudad">Ciudad</option>
-          <option value="pueblo">Pueblo</option>
-          <option value="parada">Parada Rural</option>
-        </select>
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={formData.es_terminal}
-            onChange={(e) => setFormData({ ...formData, es_terminal: e.target.checked })}
-          />
-          <span>Es terminal</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Coordenadas"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.coordenadas}
-          onChange={(e) => setFormData({ ...formData, coordenadas: e.target.value })}
-        />
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-4 rounded shadow-md space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Nombre de la Localidad
+            <input
+              type="text"
+              className="mt-1 w-full border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+              value={formData.nombre}
+              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              required
+            />
+          </label>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Coordenadas (opcional)
+            <input
+              type="number"
+              step="any"
+              className="mt-1 w-full border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+              value={formData.coordenadas}
+              onChange={(e) => setFormData({ ...formData, coordenadas: e.target.value })}
+              placeholder="Ej: -25.2867"
+            />
+          </label>
+        </div>
+
         <div className="flex space-x-2">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          <button 
+            type="submit" 
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
             {localidadEditando ? "Actualizar" : "Agregar"}
           </button>
           {localidadEditando && (
             <button
               type="button"
               onClick={resetForm}
-              className="bg-gray-400 text-white px-4 py-2 rounded"
+              className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
             >
               Cancelar
             </button>
@@ -133,40 +131,36 @@ const Localidades = () => {
         </div>
       </form>
 
-      {/* Tabla de Localidades */}
+      {/* Tabla */}
       <div className="w-full overflow-x-auto py-4">
         <table className="table w-full border-collapse bg-white dark:bg-gray-800 shadow-md">
           <thead>
-            <tr className="bg-gray-200 dark:bg-gray-700 dark:text-white">
+            <tr className="bg-gray-200 dark:bg-gray-700">
               <th className="p-2">Nombre</th>
-              <th className="p-2">Tipo</th>
-              <th className="p-2">Es Terminal</th>
               <th className="p-2">Coordenadas</th>
               <th className="p-2">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {localidades.map((localidad) => (
-              <tr
-                key={localidad.id}
-                className="row-hover border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+              <tr 
+                key={localidad.id_localidad}
+                className="border-t dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <td className="p-2">{localidad.nombre}</td>
-                <td className="p-2">{localidad.tipo}</td>
-                <td className="p-2">{localidad.es_terminal ? "Sí" : "No"}</td>
-                <td className="p-2">{localidad.coordenadas}</td>
+                <td className="p-2">{localidad.coordenadas ?? "-"}</td>
                 <td className="p-2 flex space-x-2">
                   <button
-                    className="btn btn-circle btn-text btn-sm text-yellow-500"
-                    aria-label="Editar"
                     onClick={() => handleEdit(localidad)}
+                    className="text-yellow-500 hover:text-yellow-600"
+                    title="Editar"
                   >
                     <Edit size={16} />
                   </button>
                   <button
-                    className="btn btn-circle btn-text btn-sm text-red-500"
-                    aria-label="Eliminar"
-                    onClick={() => handleDelete(localidad.id)}
+                    onClick={() => handleDelete(localidad.id_localidad)}
+                    className="text-red-500 hover:text-red-600"
+                    title="Eliminar"
                   >
                     <Trash size={16} />
                   </button>

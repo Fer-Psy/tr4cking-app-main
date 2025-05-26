@@ -30,7 +30,7 @@ const MobileNavbar = () => {
       items: [
         { title: "Encomiendas", path: "/admin/encomiendas" },
         { title: "Ventas", path: "/admin/facturacion" },
-        { title: "Timbrados", path: "/admin/timbrados" },
+        { title: "Caja", path: "/admin/caja" },
       ],
     },
     {

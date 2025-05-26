@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Edit, Trash } from "lucide-react";
+//import { AsientosSelector } from "../../pages/admin/AsientosSelector";
+import AsientosSelector from "../../pages/admin/AsientosSelector2";
 
 const PASAJES_API_URL = "http://127.0.0.1:8000/api/pasajes/";
 
@@ -21,6 +23,8 @@ const Pasajes = () => {
     asiento: 0,
   });
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [asientosOcupados, setAsientosOcupados] = useState<number[]>([]);
+  const [viajeSeleccionado, setViajeSeleccionado] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPasajes();
@@ -85,60 +89,81 @@ const Pasajes = () => {
         Gestión de Pasajes
       </h2>
 
-      {/* Formulario */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 p-4 rounded shadow-md grid grid-cols-1 md:grid-cols-2 gap-4"
-      >
-        <input
-          type="text"
-          placeholder="Cliente"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.cliente}
-          onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-          required
-        />
-        <input
-          type="text"
-          placeholder="Bus"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.bus}
-          onChange={(e) => setFormData({ ...formData, bus: e.target.value })}
-          required
-        />
-        <input
-          type="date"
-          placeholder="Fecha de Viaje"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.fecha_viaje}
-          onChange={(e) => setFormData({ ...formData, fecha_viaje: e.target.value })}
-          required
-        />
-        <input
-          type="number"
-          placeholder="Asiento"
-          className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
-          value={formData.asiento}
-          onChange={(e) => setFormData({ ...formData, asiento: Number(e.target.value) })}
-          required
-          min={1}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Formulario */}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white dark:bg-gray-800 p-4 rounded shadow-md space-y-4"
+        >
+          <input
+            type="text"
+            placeholder="Cliente"
+            className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+            value={formData.cliente}
+            onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Bus"
+            className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+            value={formData.bus}
+            onChange={(e) => setFormData({ ...formData, bus: e.target.value })}
+            required
+          />
+          <input
+            type="date"
+            placeholder="Fecha de Viaje"
+            className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+            value={formData.fecha_viaje}
+            onChange={(e) => setFormData({ ...formData, fecha_viaje: e.target.value })}
+            required
+          />
+          <input
+            type="number"
+            placeholder="Asiento"
+            className="border p-2 rounded dark:bg-gray-700 dark:border-gray-600"
+            value={formData.asiento}
+            onChange={(e) => setFormData({ ...formData, asiento: Number(e.target.value) })}
+            required
+            min={1}
+          />
 
-        <div className="flex space-x-2">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded">
-            {editandoId ? "Actualizar" : "Agregar"}
-          </button>
-          {editandoId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="bg-gray-400 text-white px-4 py-2 rounded"
-            >
-              Cancelar
+          <div className="flex space-x-2">
+            <button className="bg-blue-500 text-white px-4 py-2 rounded">
+              {editandoId ? "Actualizar" : "Agregar"}
             </button>
-          )}
+            {editandoId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="bg-gray-400 text-white px-4 py-2 rounded"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+
+        {/* Selector de Asientos
+        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Selección de Asiento</h3>
+          <AsientosSelector
+            tipo="2-2" // Cambia según el tipo de bus
+            capacidad={40} // Cambia según la capacidad del bus
+            ocupados={asientosOcupados}
+          /> 
+        </div>*/}
+        {/* Selector de Asientos 2*/}
+        <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Selección de Asiento</h3>
+          <AsientosSelector
+            asientosOcupados={asientosOcupados}
+            asientoSeleccionado={formData.asiento || null}
+            onAsientoClick={(numero) => setFormData({ ...formData, asiento: numero })}
+          />
         </div>
-      </form>
+      </div>
 
       {/* Tabla */}
       <div className="w-full overflow-x-auto py-4">
