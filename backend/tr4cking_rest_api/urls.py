@@ -5,7 +5,6 @@ from .views import *
 
 router = DefaultRouter()
 
-
 # Authentication
 router.register(r'users', UserViewSet)
 router.register(r'groups', GroupViewSet)
@@ -21,7 +20,7 @@ router.register(r'pasajeros', PasajeroViewSet)
 
 # Empresas
 router.register(r'empresas', EmpresaViewSet)
-
+router.register(r'empleados', EmpleadoViewSet)
 # Geografia
 router.register(r'localidades', LocalidadViewSet)
 router.register(r'paradas', ParadaViewSet)
@@ -33,13 +32,13 @@ router.register(r'asientos', AsientoViewSet)
 # Rutas
 router.register(r'rutas', RutaViewSet)
 router.register(r'detalle-rutas', DetalleRutaViewSet)
-router.register(r'horarios', HorarioViewSet)
+#router.register(r'horarios', HorarioViewSet)
 
 # Viajes y Servicios
 router.register(r'viajes', ViajeViewSet)
 router.register(r'pasajes', PasajeViewSet)
-router.register(r'reservas', CabeceraReservaViewSet)
-router.register(r'detalle-reservas', DetalleReservaViewSet)
+router.register(r'reservas', ReservaViewSet)
+#router.register(r'detalle-reservas', DetalleReservaViewSet)
 router.register(r'encomiendas', EncomiendaViewSet)
 
 

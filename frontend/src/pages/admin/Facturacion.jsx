@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ClientesModal } from "./ClientesModal";
 import { EncomiendaModal } from "./EncomiendaModal";
+import { ReservasModal } from "./ReservasModal";
 import { useEffect } from "react";
 import axios from "axios";
 
@@ -9,25 +10,25 @@ const Facturacion = () => {
 
   const [cajaAbierta, setCajaAbierta] = useState(null);
   useEffect(() => {
-  const obtenerCajaAbierta = async () => {
-    try {
-      const response = await axios.get("/api/cajas/");
-      const cajasAbiertas = response.data;
-      const abierta = cajasAbiertas.filter(caja => caja.estado === "Abierta");
+    const obtenerCajaAbierta = async () => {
+      try {
+        const response = await axios.get("/api/cajas/");
+        const cajasAbiertas = response.data;
+        const abierta = cajasAbiertas.filter(caja => caja.estado === "Abierta");
 
-      if (abierta.length > 0) {
-        // Tomamos la primera caja abierta (asumiendo que solo hay una)
-        setCajaAbierta(abierta[0]); 
-      } else {
-        setCajaAbierta(null);
+        if (abierta.length > 0) {
+          // Tomamos la primera caja abierta (asumiendo que solo hay una)
+          setCajaAbierta(abierta[0]);
+        } else {
+          setCajaAbierta(null);
+        }
+      } catch (error) {
+        console.error("Error al obtener la caja abierta:", error);
       }
-    } catch (error) {
-      console.error("Error al obtener la caja abierta:", error);
-    }
-  };
+    };
 
-  obtenerCajaAbierta();
-}, []);
+    obtenerCajaAbierta();
+  }, []);
 
 
 
@@ -42,7 +43,7 @@ const Facturacion = () => {
     nombre: "",
   });
 
-  const [modalActivo, setModalActivo] = useState(null); // null, "cliente", "servicio"
+  const [modalActivo, setModalActivo] = useState(null);
 
   const [servicio, setServicio] = useState({
     codigo: "",
@@ -82,6 +83,14 @@ const Facturacion = () => {
     setCliente({
       ruc: `${clienteSeleccionado.cedula}-${clienteSeleccionado.dv}`, // Formatea el RUC como "cedula-dv"
       nombre: clienteSeleccionado.razon_social, // Usa razon_social en lugar de usuario_nombre
+    });
+    setModalActivo(null);
+  };
+  const seleccionarDeReserva = (reserva) => {
+    const clienteData = reserva.cliente_details;
+    setCliente({
+      ruc: `${clienteData.cedula}-${clienteData.dv}`,
+      nombre: clienteData.razon_social,
     });
     setModalActivo(null);
   };
@@ -180,7 +189,7 @@ const Facturacion = () => {
           <button
             type="button"
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-400"
-            onClick={() => setModalActivo("cliente")}
+            onClick={() => setModalActivo("reservas")}
           >
             Buscar Reservas
           </button>
@@ -350,6 +359,11 @@ const Facturacion = () => {
         open={modalActivo === "cliente"}
         onClose={() => setModalActivo(null)}
         onSelect={seleccionarCliente}
+      />
+      <ReservasModal
+        open={modalActivo === "reservas"}
+        onClose={() => setModalActivo(null)}
+        onSelect={seleccionarDeReserva}
       />
 
       <EncomiendaModal

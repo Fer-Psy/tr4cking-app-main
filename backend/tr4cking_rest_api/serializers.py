@@ -1,22 +1,54 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User,Group,Permission
-from .models import (
-    Cliente, Localidad, Empresa, Persona,UsuarioPersona, Parada, Empleado,
-    Bus, Asiento, Ruta, DetalleRuta, Horario, Viaje,
-    Pasaje, Encomienda, TipoDocumento, Timbrado,Pasajero,
-    CabeceraFactura, DetalleFactura, HistorialFactura,
-    Caja, CabeceraCaja, DetalleCaja,CabeceraReserva, DetalleReserva
-)
-User = get_user_model()
+from .models import *
+UUser = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    groups = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=Group.objects.all(),
+        required=False
+    )
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'is_active', 'is_staff']
+        fields = ['id', 'username', 'email', 'password', 'is_active', 'is_staff', 'groups']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True},
+            'is_staff': {'required': False},
+            'is_active': {'required': False}
         }
+
+    def create(self, validated_data):
+        groups = validated_data.pop('groups', [])
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+            is_staff=validated_data.get('is_staff', False),
+            is_active=validated_data.get('is_active', True)
+        )
+        user.groups.set(groups)
+        return user
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            password = validated_data.pop('password')
+            instance.set_password(password)
+        
+        if 'groups' in validated_data:
+            groups = validated_data.pop('groups')
+            instance.groups.set(groups)
+        
+        instance.is_staff = validated_data.get('is_staff', instance.is_staff)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.email = validated_data.get('email', instance.email)
+        instance.username = validated_data.get('username', instance.username)
+        
+        instance.save()
+        return instance
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,7 +73,6 @@ class UsuarioPersonaSerializer(serializers.ModelSerializer):
         model = UsuarioPersona
         fields = ['user', 'cedula', 'user_details', 'persona_details']
 
-
 class ClienteSerializer(serializers.ModelSerializer):
     persona_details = PersonaSerializer(source='cedula', read_only=True)
 
@@ -51,16 +82,32 @@ class ClienteSerializer(serializers.ModelSerializer):
         read_only_fields = ('fecha_registro',)
 
 class PasajeroSerializer(serializers.ModelSerializer):
+    persona_nombre = serializers.CharField(source='persona.nombre', read_only=True)
     persona_details = PersonaSerializer(source='cedula', read_only=True)
 
     class Meta:
         model = Pasajero
-        fields = ['id_pasajero', 'cedula', 'persona_details']
+        fields = ['id_pasajero', 'cedula', 'persona_nombre', 'persona_details']
+
+    def validate_asiento(self, value):
+        if value.estado != 'Disponible':
+            raise serializers.ValidationError("El asiento no está disponible")
+        return value
 
 class EmpresaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Empresa
         fields = ['id_empresa', 'nombre', 'ruc', 'telefono', 'email', 'direccion_legal']
+
+class EmpleadoSerializer(serializers.ModelSerializer):
+    persona_nombre = serializers.CharField(source='cedula.nombre', read_only=True)
+    persona_details = PersonaSerializer(source='cedula', read_only=True)
+
+    class Meta:
+        model = Empleado
+        fields = ['id_empleado', 'cedula', 'persona_nombre', 'persona_details', 
+                  'empresa', 'cargo', 'fecha_ingreso']
+
 
 class LocalidadSerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,18 +121,12 @@ class ParadaSerializer(serializers.ModelSerializer):
         model = Parada
         fields = ['id_parada', 'localidad', 'localidad_nombre', 'nombre', 'direccion', 'coordenadas', 'activo']
 
-class EmpleadoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Empleado
-        fields = '__all__'
-
 class BusSerializer(serializers.ModelSerializer):
     empresa_nombre = serializers.CharField(source='empresa.nombre', read_only=True)
 
     class Meta:
         model = Bus
         fields = ['id_bus', 'placa', 'marca', 'modelo', 'capacidad', 'estado', 'empresa', 'empresa_nombre']
-
 
 class AsientoSerializer(serializers.ModelSerializer):
     bus_placa = serializers.CharField(source='bus.placa', read_only=True)
@@ -96,55 +137,64 @@ class AsientoSerializer(serializers.ModelSerializer):
 
 class DetalleRutaSerializer(serializers.ModelSerializer):
     parada_nombre = serializers.CharField(source='parada.nombre', read_only=True)
+    localidad_nombre = serializers.CharField(source='parada.localidad.nombre', read_only=True)
 
     class Meta:
         model = DetalleRuta
-        fields = ['ruta', 'parada', 'parada_nombre', 'orden']
+        fields = ['ruta', 'parada', 'parada_nombre',
+                  'localidad_nombre', 'hora_salida', 'orden']
 
 class RutaSerializer(serializers.ModelSerializer):
     detalles = DetalleRutaSerializer(many=True, read_only=True, source='detalleruta_set')
 
     class Meta:
         model = Ruta
-        fields = ['id_ruta', 'duracion_total', 'distancia_km', 'precio_base', 
+        fields = ['id_ruta', 'nombre', 
                  'activo', 'fecha_actualizacion', 'detalles']
         read_only_fields = ('fecha_actualizacion',)
-
+"""
 class HorarioSerializer(serializers.ModelSerializer):
     ruta_details = RutaSerializer(source='ruta', read_only=True)
 
     class Meta:
         model = Horario
         fields = ['id_horario', 'ruta', 'ruta_details', 'hora_salida', 'dias_semana', 'activo']
-
-
+"""
 class ViajeSerializer(serializers.ModelSerializer):
-    horario_details = HorarioSerializer(source='horario', read_only=True)
+    #horario_details = HorarioSerializer(source='horario', read_only=True)
+    nombre_ruta = serializers.CharField(source='ruta.nombre', read_only=True)
+    ruta_details = RutaSerializer(source='ruta', read_only=True)
+    bus_placa = serializers.CharField(source='bus.placa', read_only=True)
     bus_details = BusSerializer(source='bus', read_only=True)
 
     class Meta:
         model = Viaje
-        fields = ['id_viaje', 'horario', 'horario_details', 'bus', 'bus_details',
+        fields = ['id_viaje','ruta','nombre_ruta', 'ruta_details', 'bus','bus_placa', 'bus_details',
                  'fecha', 'activo', 'observaciones']
-        
-class PasajeSerializer(serializers.ModelSerializer):
-    viaje_details = ViajeSerializer(source='viaje', read_only=True)
-    asiento_details = AsientoSerializer(source='asiento', read_only=True)
-    pasajero_details = PasajeroSerializer(source='pasajero', read_only=True)
 
-    class Meta:
-        model = Pasaje
-        fields = ['id_pasaje', 'viaje', 'viaje_details', 'asiento', 
-                 'asiento_details', 'pasajero', 'pasajero_details']
-        
-class CabeceraReservaSerializer(serializers.ModelSerializer):
+
+class ReservaSerializer(serializers.ModelSerializer):
     cliente_details = ClienteSerializer(source='cliente', read_only=True)
 
     class Meta:
-        model = CabeceraReserva
-        fields = ['id_reserva', 'cliente', 'cliente_details', 'fecha_reserva']
+        model = Reserva
+        fields = ['id_reserva', 'cliente', 'cliente_details',
+                  'estado', 'fecha_reserva']
         read_only_fields = ('fecha_reserva',)
 
+class PasajeSerializer(serializers.ModelSerializer):
+    reserva_details = ReservaSerializer(source='reserva', read_only=True)
+    viaje_details = ViajeSerializer(source='viaje', read_only=True)
+    asiento_details = AsientoSerializer(source='asiento', read_only=True)
+    pasajero_details = PasajeroSerializer(source='pasajero', read_only=True)
+    origen = serializers.CharField(source='viaje.ruta.detalleruta.parada.nombre', read_only=True)
+    destino = serializers.CharField(source='viaje.ruta.detalleruta.parada.nombre', read_only=True)
+
+    class Meta:
+        model = Pasaje
+        fields = ['id_pasaje','reserva', 'reserva_details', 'viaje', 'viaje_details', 'asiento', 
+                 'asiento_details', 'pasajero', 'pasajero_details', 'origen', 'destino']
+"""
 class DetalleReservaSerializer(serializers.ModelSerializer):
     reserva_details = CabeceraReservaSerializer(source='reserva', read_only=True)
     pasaje_details = PasajeSerializer(source='pasaje', read_only=True)
@@ -153,12 +203,9 @@ class DetalleReservaSerializer(serializers.ModelSerializer):
         model = DetalleReserva
         fields = ['id_detalle', 'reserva', 'reserva_details', 
                  'pasaje', 'pasaje_details']
+"""
 
 
-
-
-
-#encomienda modificado
 class EncomiendaSerializer(serializers.ModelSerializer):
     cliente_details = ClienteSerializer(source='cliente', read_only=True)
     viaje_details = ViajeSerializer(source='viaje', read_only=True)
@@ -173,7 +220,7 @@ class EncomiendaSerializer(serializers.ModelSerializer):
                  'cantidad_sobre', 'cantidad_paquete', 'descripcion',
                  'fecha_creacion', 'fecha_actualizacion']
         read_only_fields = ('fecha_creacion', 'fecha_actualizacion')
-
+        
 class TipoDocumentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TipoDocumento

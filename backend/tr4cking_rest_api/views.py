@@ -9,6 +9,8 @@ from .serializers import *
 
 User = get_user_model()
 
+User = get_user_model()
+
 # Authentication ViewSets
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -43,6 +45,7 @@ class UsuarioPersonaViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioPersonaSerializer
     permission_classes = [AllowAny]
 
+# Clientes y Pasajeros ViewSets
 class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.select_related('cedula')
     serializer_class = ClienteSerializer
@@ -60,17 +63,33 @@ class PasajeroViewSet(viewsets.ModelViewSet):
     serializer_class = PasajeroSerializer
     permission_classes = [AllowAny]
 
+# Empresas ViewSet
 class EmpresaViewSet(viewsets.ModelViewSet):
     queryset = Empresa.objects.all()
     serializer_class = EmpresaSerializer
     permission_classes = [AllowAny]
 
+# Empleados ViewSet
+class EmpleadoViewSet(viewsets.ModelViewSet):
+    queryset = Empleado.objects.select_related('cedula', 'empresa')
+    serializer_class = EmpleadoSerializer
+    permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        queryset = Empleado.objects.select_related('cedula', 'empresa')
+        cedula = self.request.query_params.get('cedula', None)
+        empresa = self.request.query_params.get('empresa', None)
+        if cedula:
+            queryset = queryset.filter(cedula__cedula=cedula)
+        if empresa:
+            queryset = queryset.filter(empresa_id=empresa)
+        return queryset
+
+# Geografia ViewSets
 class LocalidadViewSet(viewsets.ModelViewSet):
     queryset = Localidad.objects.all()
     serializer_class = LocalidadSerializer
     permission_classes = [AllowAny]
-
 
 class ParadaViewSet(viewsets.ModelViewSet):
     queryset = Parada.objects.select_related('localidad')
@@ -87,11 +106,7 @@ class ParadaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(activo=activo)
         return queryset
 
-class EmpleadoViewSet(viewsets.ModelViewSet):
-    queryset = Empleado.objects.all()
-    serializer_class = EmpleadoSerializer
-
-
+# Transporte ViewSets
 class BusViewSet(viewsets.ModelViewSet):
     queryset = Bus.objects.select_related('empresa')
     serializer_class = BusSerializer
@@ -106,7 +121,7 @@ class BusViewSet(viewsets.ModelViewSet):
         if estado:
             queryset = queryset.filter(estado=estado)
         return queryset
-    
+
 class AsientoViewSet(viewsets.ModelViewSet):
     queryset = Asiento.objects.select_related('bus')
     serializer_class = AsientoSerializer
@@ -122,30 +137,30 @@ class AsientoViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(estado=estado)
         return queryset
 
-
+# Rutas ViewSets
 class RutaViewSet(viewsets.ModelViewSet):
     queryset = Ruta.objects.prefetch_related('detalleruta_set')
     serializer_class = RutaSerializer
     permission_classes = [AllowAny]
 
-
 class DetalleRutaViewSet(viewsets.ModelViewSet):
     queryset = DetalleRuta.objects.select_related('ruta', 'parada')
     serializer_class = DetalleRutaSerializer
     permission_classes = [AllowAny]
-
+"""
 class HorarioViewSet(viewsets.ModelViewSet):
     queryset = Horario.objects.select_related('ruta')
     serializer_class = HorarioSerializer
     permission_classes = [AllowAny]
-
+"""
+# Viajes y Servicios ViewSets
 class ViajeViewSet(viewsets.ModelViewSet):
     queryset = Viaje.objects.select_related('horario', 'bus')
     serializer_class = ViajeSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        queryset = Viaje.objects.select_related('horario', 'bus')
+        queryset = Viaje.objects.select_related('bus')
         fecha = self.request.query_params.get('fecha', None)
         bus = self.request.query_params.get('bus', None)
         activo = self.request.query_params.get('activo', None)
@@ -157,8 +172,18 @@ class ViajeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(activo=activo)
         return queryset
 
+class ReservaViewSet(viewsets.ModelViewSet):
+    queryset = Reserva.objects.select_related('cliente')
+    serializer_class = ReservaSerializer
+    permission_classes = [AllowAny]
 
-
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        cliente = self.request.query_params.get('cliente', None)
+        if cliente:
+            queryset = queryset.filter(cliente_id=cliente)
+        return queryset
+    
 class PasajeViewSet(viewsets.ModelViewSet):
     queryset = Pasaje.objects.select_related('viaje', 'asiento', 'pasajero')
     serializer_class = PasajeSerializer
@@ -174,18 +199,7 @@ class PasajeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(pasajero_id=pasajero)
         return queryset
     
-class CabeceraReservaViewSet(viewsets.ModelViewSet):
-    queryset = CabeceraReserva.objects.select_related('cliente')
-    serializer_class = CabeceraReservaSerializer
-    permission_classes = [AllowAny]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        cliente = self.request.query_params.get('cliente', None)
-        if cliente:
-            queryset = queryset.filter(cliente_id=cliente)
-        return queryset
-
+"""
 class DetalleReservaViewSet(viewsets.ModelViewSet):
     queryset = DetalleReserva.objects.select_related('reserva', 'pasaje')
     serializer_class = DetalleReservaSerializer
@@ -197,6 +211,7 @@ class DetalleReservaViewSet(viewsets.ModelViewSet):
         if reserva:
             queryset = queryset.filter(reserva_id=reserva)
         return queryset
+"""
 
 class EncomiendaViewSet(viewsets.ModelViewSet):
     queryset = Encomienda.objects.select_related(

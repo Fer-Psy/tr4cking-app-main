@@ -1,9 +1,9 @@
-from django.db import models
-from django.contrib.auth.models import User, Group, Permission
-from django.core.validators import MinValueValidator
-from django.utils import timezone
 from django.conf import settings
-
+from django.contrib.auth.models import User, Group, Permission
+from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from django.utils import timezone
 
 # -----------------------------------------------
 # Autenticación (Usar el estándar de Django)
@@ -11,9 +11,6 @@ from django.conf import settings
 # auth_user, auth_group, auth_permission, etc. 
 # -> Ya lo maneja Django internamente, no hay que redefinirlo
 
-# -----------------------------------------------
-# Clientes (clientes no registrados)
-# -----------------------------------------------
 # -----------------------------------------------
 # Personas y Usuarios
 # -----------------------------------------------
@@ -42,7 +39,6 @@ class UsuarioPersona(models.Model):
 # -----------------------------------------------
 # Clientes (actualizado)
 # -----------------------------------------------
-
 class Cliente(models.Model):
     id_cliente = models.BigAutoField(primary_key=True)
     cedula = models.ForeignKey(
@@ -66,6 +62,7 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.razon_social
+
 # -----------------------------------------------
 # Pasajeros (nuevo)
 # -----------------------------------------------
@@ -80,7 +77,7 @@ class Pasajero(models.Model):
     def __str__(self):
         return f"{self.cedula.nombre} {self.cedula.apellido}"
 
-#----------------------------------------------
+# -----------------------------------------------
 # Empresas y Sucursales
 # -----------------------------------------------
 class Empresa(models.Model):
@@ -94,6 +91,22 @@ class Empresa(models.Model):
     def __str__(self):
         return self.nombre
 
+
+class Empleado(models.Model):
+    id_empleado = models.BigAutoField(primary_key=True)
+    cedula = models.ForeignKey(
+        Persona,
+        to_field='cedula',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
+    cargo = models.CharField(max_length=50, blank=True, null=True)
+    fecha_ingreso = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.cedula.nombre} {self.cedula.apellido} - {self.empresa.nombre} ({self.cargo})"
 # -----------------------------------------------
 # Geografía
 # -----------------------------------------------
@@ -139,7 +152,7 @@ class Bus(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.placa
+        return f"{self.empresa.nombre} - {self.placa} ({self.capacidad})"
 
 class Asiento(models.Model):
     ESTADOS_ASIENTO = [
@@ -160,26 +173,34 @@ class Asiento(models.Model):
 
     class Meta:
         unique_together = ('bus', 'numero_asiento')
+    def __str__(self):
+        return f"{self.bus.empresa.nombre} - {self.bus.placa} - Asiento {self.numero_asiento} ({self.tipo_asiento})"
 
 # -----------------------------------------------
 # Rutas
 # -----------------------------------------------
 class Ruta(models.Model):
     id_ruta = models.BigAutoField(primary_key=True)
-    duracion_total = models.DecimalField(max_digits=6, decimal_places=2)
-    distancia_km = models.DecimalField(max_digits=6, decimal_places=2)
-    precio_base = models.DecimalField(max_digits=10, decimal_places=2)
+    nombre = models.CharField(max_length=100, unique=True)
     activo = models.BooleanField(default=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.nombre
 
 class DetalleRuta(models.Model):
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE)
     parada = models.ForeignKey(Parada, on_delete=models.CASCADE)
+    hora_salida = models.TimeField(blank=True, null=True)
     orden = models.IntegerField()
 
     class Meta:
-        unique_together = [('ruta', 'parada'), ('ruta', 'orden')]
+        unique_together = [('ruta', 'parada')]
+        ordering = ['orden']
 
+    def __str__(self):
+        return f"{self.ruta} - {self.parada} ({self.hora_salida})"
+""""
 class Horario(models.Model):
     id_horario = models.BigAutoField(primary_key=True)
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE)
@@ -189,38 +210,50 @@ class Horario(models.Model):
 
     class Meta:
         unique_together = ('ruta', 'hora_salida')
-
+"""
 class Viaje(models.Model):
     id_viaje = models.BigAutoField(primary_key=True)
-    horario = models.ForeignKey(Horario, on_delete=models.CASCADE,null=True, blank=True)
+    #horario = models.ForeignKey(Horario, on_delete=models.CASCADE,null=True, blank=True)
+    ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE)
     bus = models.ForeignKey(Bus, on_delete=models.CASCADE)
     fecha = models.DateField()
     activo = models.BooleanField(default=True)
     observaciones = models.TextField(blank=True, null=True)
 
     class Meta:
-        unique_together = ('bus', 'fecha', 'horario')
+        unique_together = ('bus', 'fecha')
+
+    def __str__(self):
+        return f"{self.ruta.nombre} - Bus {self.bus.placa} - Fecha {self.fecha} ({'Activo' if self.activo else 'Inactivo'})"
+
 
 # -----------------------------------------------
 # Servicios (Pasajes y Reservas)
 # -----------------------------------------------
+class Reserva(models.Model):
+    ESTADOS_RESERVA = [
+        ('Pagada', 'Pagada'),
+        ('Pendiente', 'Pendiente'),
+        ('Cancelada', 'Cancelada'),
+    ]
+    id_reserva = models.BigAutoField(primary_key=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    estado = models.CharField(max_length=20, choices=ESTADOS_RESERVA, default='Pendiente')
+    fecha_reserva = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Reserva #{self.id_reserva} - {self.cliente}"
+    
 class Pasaje(models.Model):
     id_pasaje = models.BigAutoField(primary_key=True)
+    reserva = models.ForeignKey(Reserva, on_delete=models.CASCADE, null=True, blank=True)
     viaje = models.ForeignKey(Viaje, on_delete=models.CASCADE)
     asiento = models.ForeignKey(Asiento, on_delete=models.CASCADE)
     pasajero = models.ForeignKey(Pasajero, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"Pasaje #{self.id_pasaje} - {self.pasajero}"
-
-class CabeceraReserva(models.Model):
-    id_reserva = models.BigAutoField(primary_key=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    fecha_reserva = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Reserva #{self.id_reserva} - {self.cliente}"
-
+        return f"Pasaje {self.viaje.ruta.nombre} - Asiento {self.asiento.numero_asiento} - Pasajero {self.pasajero}"
+"""
 class DetalleReserva(models.Model):
     id_detalle = models.BigAutoField(primary_key=True)
     reserva = models.ForeignKey(CabeceraReserva, on_delete=models.CASCADE)
@@ -228,28 +261,7 @@ class DetalleReserva(models.Model):
 
     def __str__(self):
         return f"Detalle #{self.id_detalle} - Reserva #{self.reserva.id_reserva}"
-
-
-
-
-# -----------------------------------------------
-# Empleados
-# ------------------------------------------  
-class Empleado(models.Model):
-    id_empleado = models.BigAutoField(primary_key=True)
-    usuario = models.OneToOneField('auth.User', on_delete=models.CASCADE)
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE,null=True,blank=True)
-    fecha_contratacion = models.DateField()
-    cargo = models.CharField(max_length=100)
-
-    def __str__(self):
-        return f"{self.usuario.first_name} {self.usuario.last_name}"
-
-
-
-
-
-#modificacion de encomienda de a cuerdo al frontend
+"""
 
 class Encomienda(models.Model):
     TIPO_ENVIO_CHOICES = [
@@ -261,8 +273,8 @@ class Encomienda(models.Model):
     id_encomienda = models.BigAutoField(primary_key=True)
     viaje = models.ForeignKey(Viaje, on_delete=models.CASCADE)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-    origen = models.ForeignKey(DetalleRuta, on_delete=models.CASCADE, related_name='origen_encomienda')
-    destino = models.ForeignKey(DetalleRuta, on_delete=models.CASCADE, related_name='destino_encomienda')
+    origen = models.ForeignKey(Parada, on_delete=models.CASCADE, related_name='origen_encomienda')
+    destino = models.ForeignKey(Parada, on_delete=models.CASCADE, related_name='destino_encomienda')
     flete = models.DecimalField(max_digits=12, decimal_places=2)
     remitente = models.CharField(max_length=100)
     ruc_ci = models.CharField(max_length=20)
@@ -276,7 +288,20 @@ class Encomienda(models.Model):
 
     def __str__(self):
         return f"Encomienda #{self.id_encomienda} - {self.get_tipo_envio_display()}"
-    
+
+@receiver(post_save, sender=Pasaje)
+def actualizar_estado_asiento(sender, instance, created, **kwargs):
+    if created:  # Solo cuando se crea un nuevo pasaje
+        asiento = instance.asiento
+        asiento.estado = 'Ocupado'
+        asiento.save()
+
+@receiver(post_delete, sender=Pasaje)
+def restaurar_estado_asiento(sender, instance, **kwargs):
+    asiento = instance.asiento
+    asiento.estado = 'Disponible'
+    asiento.save()
+
 
 
 class TipoDocumento(models.Model):
